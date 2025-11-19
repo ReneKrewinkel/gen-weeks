@@ -1,3 +1,7 @@
+<img src='./images/github-logo.svg' height="450" alt='GitHub Week Labeler'/>
+
+
+
 # GitHub Week Labeler
 
 A Rust program to automatically create weekly labels (e.g., `week-2025-47`) for **all repositories in a GitHub organization**. Labels are formatted with the ISO year and week number and can optionally be generated for a configurable number of weeks.
