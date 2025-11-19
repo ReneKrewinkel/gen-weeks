@@ -1,3 +1,6 @@
+mod config;
+mod tools;
+
 use chrono::Datelike;
 use rand::Rng;
 use reqwest::blocking::Client;
@@ -13,6 +16,10 @@ struct Config {
 
 fn main() {
     // Read JSON config file path from first argument
+
+    let config = config::app::get_config();
+    tools::logo::show(&config.unwrap());
+    
     let args: Vec<String> = env::args().collect();
     if args.len() < 2 {
         eprintln!("Usage: {} <CONFIG_JSON_PATH> [WEEKS]", args[0]);
