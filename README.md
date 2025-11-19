@@ -1,122 +1,141 @@
-<img src='./images/github-logo.svg' height="350" alt='GitHub Week Labeler'/>
+# GitHub Weekly Label Builder `gen-weeks`
 
-
-
-# GitHub Week Labeler
-
-A Rust program to automatically create weekly labels (e.g., `week-2025-47`) for **all repositories in a GitHub organization**. Labels are formatted with the ISO year and week number and can optionally be generated for a configurable number of weeks.
+A Rust CLI tool to automate creating and managing weekly GitHub labels across your repositories. This tool helps you organize issues and pull requests by ISO week number, with a color gradient from **light blue (week 1)** to **dark purple (week 52)**.
 
 ---
 
 ## Features
 
-* Generates weekly labels in the format: `week-YYYY-WW` (leading zero for weeks < 10)
-* Applies labels to **all repositories** in a GitHub organization
-* Skips labels that already exist
-* Random color assigned per label (optional: same color for all repos can be implemented)
-* Configurable number of weeks
-* Uses a JSON config file for organization and token settings
-* Handles API errors gracefully
-
----
-
-## Requirements
-
-* Rust 2024 edition
-* A **GitHub Personal Access Token** (PAT) with:
-
-  * `repo` (access to repositories)
-  * `admin:org` (for org-wide access if needed)
+- Generate weekly labels in the format `week-YYYY-WW` with leading zeros.  
+- Apply labels to:  
+  - **A single repository**  
+  - **All repositories in an organization**  
+  - **All personal repositories** if no organization is specified.  
+- Forces label creation or updates existing labels with new colors and descriptions.  
+- Supports GitHub Projects filtering by week labels.  
+- Configurable number of weeks (default: 26).  
+- Panic-safe JSON parsing and API responses.  
+- Supports CLI flags: `-f <config_file>` and `-w <weeks>`.
 
 ---
 
 ## Installation
 
-1. Clone this repository or copy the Rust source code:
+1. Clone the repository:
 
 ```bash
-git clone <your-repo-url>
-cd github-week-labeler
+git clone https://github.com/ReneKrewinkel/gen-weeks
+cd gen-weeks
 ```
 
-2. Add dependencies in `Cargo.toml`:
-
-```toml
-[dependencies]
-chrono = "0.4"
-rand = "0.8"
-reqwest = { version = "0.11", features = ["blocking", "json"] }
-serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0"
-```
-
-3. Build the program:
+2. Build the project with Rust:
 
 ```bash
 cargo build --release
 ```
 
+3. The executable will be available at `target/release/gen-weeks`.
+
 ---
 
 ## Configuration
 
-Create a `config.json` file with the following structure:
+Create a `config.json` file:
+
+### Single Repository
 
 ```json
 {
-  "org_name": "YOUR_ORG_NAME",
-  "github_token": "ghp_ABC1234567890token"
+  "github_token": "ghp_your_personal_access_token",
+  "repo": "owner/repo"
 }
 ```
 
-* `org_name`: GitHub organization login
-* `github_token`: Personal Access Token
+### All Repositories in an Organization
+
+```json
+{
+  "github_token": "ghp_your_personal_access_token",
+  "org_name": "my-org"
+}
+```
+
+### Personal Repositories
+
+```json
+{
+  "github_token": "ghp_your_personal_access_token"
+}
+```
+
+> Note: The GitHub token must have `repo` permissions and `read:org` if updating organization repositories.
 
 ---
 
 ## Usage
 
 ```bash
-cargo run -- config.json [WEEKS]
+./gen-weeks [-f <config_file>] [-w <weeks>]
 ```
 
-* `config.json` → path to your config file
-* `[WEEKS]` → optional number of weeks to generate (default: 26)
+- `-f <config_file>` → Path to the JSON configuration file (default: `config.json`).  
+- `-w <weeks>` → Number of upcoming weeks to generate labels for (default: 26).  
 
-### Example
-
-Generate labels for 12 weeks:
+### Examples
 
 ```bash
-cargo run -- config.json 12
+# Use default config.json and 26 weeks
+./gen-weeks
+
+# Specify a config file
+./gen-weeks -f my_config.json
+
+# Specify number of weeks
+./gen-weeks -w 52
+
+# Specify both config file and weeks
+./gen-weeks -f my_config.json -w 52
 ```
 
 ---
 
-## Example Output
+## How It Works
 
-```
-Found 5 repositories in org 'my-org'
-Processing repo: repo-1
-  ✅ Created label week-2025-47 in repo-1
-  ✅ Created label week-2025-48 in repo-1
-Processing repo: repo-2
-  ✅ Created label week-2025-47 in repo-2
-  ✅ Created label week-2025-48 in repo-2
-...
-```
+1. Reads the JSON config file and GitHub token.  
+2. Determines repositories to update:
+   - Specific repository if `repo` is provided.  
+   - Organization repositories if `org_name` is provided.  
+   - Personal repositories if neither is specified.  
+3. Generates weekly labels with a light blue → dark purple gradient.  
+4. Creates new labels or updates existing ones in each repository.  
+5. Labels can be used in **GitHub Projects views** to filter by week.
 
 ---
 
-## Notes
+## Example
 
-* Labels are created individually per repository. Existing labels are skipped.
-* Each week gets a random color by default.
-* Make sure your GitHub token has the correct permissions; otherwise, API calls may fail.
+- Label for week 5 of 2025: `week-2025-05` with a mid-blue color.  
+- Week 26: `week-2025-26` with a purple color.  
+
+You can easily glance at issues and pull requests and see which ISO week they belong to.
 
 ---
 
 ## License
 
-MIT License.
+MIT License © Rene Krewinkel
+
+---
+
+## Contribution
+
+Feel free to open issues or submit pull requests for new features, such as:
+
+- GitHub Actions integration  
+- Parallelized label updates  
+- Custom color gradients  
+
+---
+
+This tool simplifies label management and helps you maintain a **consistent, visual weekly tracking system** across all your GitHub repositories.  
 
