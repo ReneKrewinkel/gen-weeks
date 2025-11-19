@@ -120,6 +120,3 @@ Processing repo: repo-2
 
 MIT License.
 
----
-
-This README provides **everything needed** to configure and run the GitHub Week Labeler.
