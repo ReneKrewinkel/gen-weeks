@@ -1,4 +1,4 @@
-<img src='./images/github-logo.svg' height="450" alt='GitHub Week Labeler'/>
+<img src='./images/github-logo.svg' height="350" alt='GitHub Week Labeler'/>
 
 
 
