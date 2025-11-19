@@ -26,17 +26,17 @@ impl Config {
         self.description = option_env!("CARGO_PKG_DESCRIPTION").map(|s| s.to_string());
         self.repository = option_env!("CARGO_PKG_REPOSITORY").map(|s| s.to_string());
     }
-    
-    pub fn get_config_item(&self, key: &str) -> String {
-        match key {
-            "version" => self.version.clone().unwrap_or_default(),
-            "author" => self.author.clone().unwrap_or_default(),
-            "homepage" => self.homepage.clone().unwrap_or_default(),
-            "description" => self.description.clone().unwrap_or_default(),
-            "repository" => self.repository.clone().unwrap_or_default(),
-            _ => panic!("Invalid config key"),
-        }
-    }
+
+    // pub fn get_config_item(&self, key: &str) -> String {
+    //     match key {
+    //         "version" => self.version.clone().unwrap_or_default(),
+    //         "author" => self.author.clone().unwrap_or_default(),
+    //         "homepage" => self.homepage.clone().unwrap_or_default(),
+    //         "description" => self.description.clone().unwrap_or_default(),
+    //         "repository" => self.repository.clone().unwrap_or_default(),
+    //         _ => panic!("Invalid config key"),
+    //     }
+    // }
 
     pub fn get_config(&self) -> (String, String, String, String, String)  {
         (
