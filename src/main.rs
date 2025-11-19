@@ -9,7 +9,6 @@ use std::{env, fs};
 struct Config {
     github_token: String,
     org_name: String,
-    org_id: String,
 }
 
 fn main() {
@@ -34,7 +33,42 @@ fn main() {
 
     let client = Client::new();
 
-    // 1️⃣ Generate labels
+    // 1️⃣ Get all repositories in the org
+    let mut page = 1;
+    let mut repos = Vec::new();
+    loop {
+        let resp: serde_json::Value = client
+            .get(&format!(
+                "https://api.github.com/orgs/{}/repos?per_page=100&page={}",
+                config.org_name, page
+            ))
+            .bearer_auth(&config.github_token)
+            .header("User-Agent", "week-labeler")
+            .send()
+            .unwrap()
+            .json()
+            .unwrap();
+
+        // Ensure it's an array
+        let repos_page = match resp.as_array() {
+            Some(arr) => arr.clone(),
+            None => {
+                eprintln!("Failed to parse repos list (maybe rate-limited or invalid token?): {:?}", resp);
+                break;
+            }
+        };
+
+        if repos_page.is_empty() {
+            break;
+        }
+
+        repos.extend(repos_page);
+        page += 1;
+    }
+
+    println!("Found {} repositories in org '{}'", repos.len(), config.org_name);
+
+    // 2️⃣ Generate labels
     let today = chrono::Local::today();
     let mut year = today.iso_week().year();
     let mut week = today.iso_week().week();
@@ -53,91 +87,7 @@ fn main() {
         }
     }
 
-    // 2️⃣ Create labels on organization level
-    for (label_name, color) in &labels {
-        println!("Creating org-level label: {}", label_name);
-
-        let query = r#"
-            mutation($orgId: ID!, $name: String!, $color: String!, $description: String) {
-              createLabel(input: {
-                ownerId: $orgId,
-                name: $name,
-                color: $color,
-                description: $description
-              }) {
-                label { id name color description }
-              }
-            }
-        "#;
-
-        let variables = json!({
-            "orgId": config.org_id,
-            "name": label_name,
-            "color": color,
-            "description": format!("Label for ISO week {}", label_name)
-        });
-
-        let resp = client
-            .post("https://api.github.com/graphql")
-            .bearer_auth(&config.github_token)
-            .header("User-Agent", "week-labeler")
-            .json(&json!({ "query": query, "variables": variables }))
-            .send();
-
-        match resp {
-            Ok(r) => {
-                let json_resp: serde_json::Value = r.json().unwrap_or_else(|e| {
-                    eprintln!("Failed to parse response for {}: {:?}", label_name, e);
-                    serde_json::json!({})
-                });
-
-                if json_resp.get("errors").is_some() {
-                    eprintln!("❌ Failed to create org-level label {}: {:?}", label_name, json_resp["errors"]);
-                } else {
-                    println!("✅ Created org-level label {}", label_name);
-                }
-            }
-            Err(e) => {
-                eprintln!("❌ Request failed for org-level label {}: {:?}", label_name, e);
-            }
-        }
-    }
-
-    // 3️⃣ Get all repositories in the organization
-    let mut page = 1;
-    let mut repos = Vec::new();
-    loop {
-        let resp: serde_json::Value = client
-            .get(&format!(
-                "https://api.github.com/orgs/{}/repos?per_page=100&page={}",
-                config.org_name, page
-            ))
-            .bearer_auth(&config.github_token)
-            .header("User-Agent", "week-labeler")
-            .send()
-            .unwrap()
-            .json()
-            .unwrap();
-
-        let repos_page = match resp.as_array() {
-            Some(arr) => arr.clone(),
-            None => {
-                eprintln!("Failed to parse repos list (maybe invalid token or rate-limited?): {:?}", resp);
-                break;
-            }
-        };
-
-        if repos_page.is_empty() {
-            break;
-        }
-
-        repos.extend(repos_page);
-        page += 1;
-    }
-
-    println!("Found {} repositories in org '{}'", repos.len(), config.org_name);
-
-    // 4️⃣ Assign labels to all existing repositories
+    // 3️⃣ Apply labels to each repo
     for repo in repos {
         let repo_name = repo["name"].as_str().unwrap();
         println!("Processing repo: {}", repo_name);
@@ -154,15 +104,18 @@ fn main() {
                 .send();
 
             match check {
-                Ok(resp) if resp.status().is_success() => continue, // Label exists
-                Ok(_) => { /* label does not exist, proceed to create */ }
+                Ok(resp) if resp.status().is_success() => {
+                    // Label exists, skip
+                    continue;
+                }
+                Ok(_) => { /* label does not exist, continue to create */ }
                 Err(e) => {
                     eprintln!("  ❌ Failed to check label {} in {}: {:?}", label_name, repo_name, e);
                     continue;
                 }
             }
 
-            // Create label in repo
+            // Create label
             let body = json!({
                 "name": label_name,
                 "color": color,
@@ -193,7 +146,6 @@ fn main() {
         }
     }
 }
-
 
 // Generate random hex color
 fn random_hex_color() -> String {
